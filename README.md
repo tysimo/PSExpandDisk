@@ -33,7 +33,7 @@ Expand C: drive on testvm01 to 100 GB.
 .\Expand-VirtualDisk.ps1 -VMMServer devvmm -VM testvm01 -Drive C -NewSize 100
 ```
 
-Expand D: drive on testvm01 by prompted value.
+Expand D: drive on testvm01 to prompted value.
 ```
 .\Expand-VirtualDisk.ps1 -VMMServer devvmm -VM testvm01 -Drive D
 ```
