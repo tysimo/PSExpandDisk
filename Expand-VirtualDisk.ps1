@@ -1,6 +1,43 @@
+<#PSScriptInfo
+.VERSION 1.0.3
+.GUID 99179600-f3aa-402f-8c0d-7d790673df30
+.AUTHOR Tyler Simonson
+.TAGS VirtualMachineManager, VMM, SCVMM, HardDisk 
+.PROJECTURI https://github.com/tysimo/PSExpandDisk
+.EXTERNALMODULEDEPENDENCIES VirtualMachineManager 
+.RELEASENOTES
+#>
+
+#Requires -Modules VirtualMachineManager
+
+<# 
+.SYNOPSIS 
+PowerShell script for expanding virtual disks.  
+
+.DESCRIPTION 
+This scipt will expand a virtual hard disk in VMM and then extend the volumn on the corrosponding virtual machine. 
+
+.PARAMETER VMMServer
+Name of Virtual Machine Manager server the virtual machine exists on.
+
+.PARAMETER VM
+Name of virtual machine to expand the disk on.
+
+.PARAMETER Drive
+Drive letter to expand.
+
+.PARAMETER NewSize
+The size in GB to expand the drive to.
+
+.EXAMPLE
+.\Expand-VirtualDisk.ps1 -VMMServer devvmm -VM testvm01 -Drive C -NewSize 100
+
+Expand C: drive on testvm01 to 100 GB.
+#> 
+
 param ([String]$VMMServer,[String]$VM,[String]$Drive,[String]$NewSize) 
 
-Import-Module -Name "virtualmachinemanager"
+Import-Module -Name "VirtualMachineManager"
 
 If (!$VMMServer) {$VMMServer = Read-Host "VMM server"}
 If (!$VM) {$VM = Read-Host "Virtual machine name"}
