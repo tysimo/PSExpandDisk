@@ -2,7 +2,7 @@
 
 PowerShell script for expanding virtual disks.  
 
-This scipt will expand a virtual hard disk in VMM and then extend the volumn on the corrosponding virtual machine.  
+This script will expand a virtual hard disk in VMM and then extend the volume on the corresponding virtual machine.  
 
 # Dependencies
 

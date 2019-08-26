@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 1.0.3
+.VERSION 1.0.4
 .GUID 99179600-f3aa-402f-8c0d-7d790673df30
 .AUTHOR Tyler Simonson
 .TAGS VirtualMachineManager, VMM, SCVMM, HardDisk 
@@ -15,7 +15,7 @@
 PowerShell script for expanding virtual disks.  
 
 .DESCRIPTION 
-This scipt will expand a virtual hard disk in VMM and then extend the volumn on the corrosponding virtual machine. 
+This script will expand a virtual hard disk in VMM and then extend the volume on the corresponding virtual machine. 
 
 .PARAMETER VMMServer
 Name of Virtual Machine Manager server the virtual machine exists on.
