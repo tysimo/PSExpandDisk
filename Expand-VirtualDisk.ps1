@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 1.0.4
+.VERSION 1.1.0
 .GUID 99179600-f3aa-402f-8c0d-7d790673df30
 .AUTHOR Tyler Simonson
 .TAGS VirtualMachineManager, VMM, SCVMM, HardDisk 
@@ -14,8 +14,11 @@
 .SYNOPSIS 
 PowerShell script for expanding virtual disks.  
 
-.DESCRIPTION 
+.DESCRIPTION
 This script will expand a virtual hard disk in VMM and then extend the volume on the corresponding virtual machine. 
+
+.LINK
+https://github.com/tysimo/PSExpandDisk
 
 .PARAMETER VMMServer
 Name of Virtual Machine Manager server the virtual machine exists on.
@@ -29,19 +32,48 @@ Drive letter to expand.
 .PARAMETER NewSize
 The size in GB to expand the drive to.
 
+.PARAMETER SpaceToAdd
+The additional space in GB to add to the current drive size. 
+
+.NOTES
+The parameters NewSize and SpaceToAdd are mutually exclusive and cannot be used together.  
+If neither is specified, the script will default to NewSize and prompt the user for a value.   
+
 .EXAMPLE
 .\Expand-VirtualDisk.ps1 -VMMServer devvmm -VM testvm01 -Drive C -NewSize 100
 
-Expand C: drive on testvm01 to 100 GB.
+Expand the C: drive on testvm01 to 100 GB.
+
+.EXAMPLE
+.\Expand-VirtualDisk.ps1 -VMMServer devvmm -VM testvm01 -Drive D -SpaceToAdd 10
+
+Add an additional 10 GB of space to the D: drive on testvm01.
+
+.EXAMPLE
+.\Expand-VirtualDisk.ps1 -VMMServer devvmm -VM testvm01 -Drive E 
+
+Expand the E: drive on testvm01 to the size specified when prompted.  The script will display the current drive size before asking for the new size.
 #> 
 
-param ([String]$VMMServer,[String]$VM,[String]$Drive,[String]$NewSize) 
+[CmdletBinding(DefaultParameterSetName='NewSize')]
+param (
+	[Parameter(Mandatory = $true)]
+	[string]	$VMMServer,
+
+	[Parameter(Mandatory = $true)]
+	[string]	$VM,
+
+	[Parameter(Mandatory = $true)]
+	[string]	$Drive,
+
+	[Parameter(Mandatory = $false, ParameterSetName = 'NewSize')]
+	[int] $NewSize,
+
+	[Parameter(Mandatory = $true, ParameterSetName = 'SpaceToAdd')]
+	[int] $SpaceToAdd
+)
 
 Import-Module -Name "VirtualMachineManager"
-
-If (!$VMMServer) {$VMMServer = Read-Host "VMM server"}
-If (!$VM) {$VM = Read-Host "Virtual machine name"}
-If (!$Drive) {$Drive = Read-Host "Drive letter"}
 
 $VolumeScript = {
 	param($Drive)
@@ -59,7 +91,7 @@ $ExtendScript = {
 	select partition $PartitionNumber
 	extend" 
 	$DiskPart | diskpart | Out-Null
-	}
+}
 
 Get-SCVMMServer -ComputerName $VMMServer | Out-Null
 
@@ -70,10 +102,18 @@ $Lun2 = Invoke-Command -ComputerName $VM -ScriptBlock $VolumeScript -Argumentlis
 $DriveName = (Get-SCVirtualDiskDrive -VM $VM | Where-Object {$_.lun -eq $Lun2}).VirtualHardDisk.Name + ".vhdx"
 $DriveName = $DriveName.Replace(".vhdx.vhdx",".vhdx")
 
-If (!$NewSize)
+switch ($psCmdlet.ParameterSetName) 
 {
-	Write-Host "Current size:"$Size -ForegroundColor "Yellow"
-	$NewSize = Read-Host "New size"
+	"NewSize" {
+		If (!$NewSize)
+		{
+			Write-Host "Current size:"$Size -ForegroundColor "Yellow"
+			$NewSize = Read-Host "New size"
+		}
+	}
+	"SpaceToAdd" {
+		$NewSize = $Size + $SpaceToAdd
+	}
 }
 
 Write-Host "Expanding virtual disk in VMM..." -ForegroundColor "Yellow"
