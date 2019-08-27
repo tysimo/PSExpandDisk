@@ -26,14 +26,28 @@ Drive letter to expand.
 
 The size in GB to expand the drive to.
 
+### -SpaceToAdd
+
+The additional space in GB to add to the current drive size. 
+
+# Notes
+
+The parameters NewSize and SpaceToAdd are mutually exclusive and cannot be used together.  
+If neither is specified, the script will default to NewSize and prompt the user for a value. 
+
 # Examples
 
-Expand C: drive on testvm01 to 100 GB.
+Expand the C: drive on testvm01 to 100 GB.
 ```
 .\Expand-VirtualDisk.ps1 -VMMServer devvmm -VM testvm01 -Drive C -NewSize 100
 ```
 
-Expand D: drive on testvm01 to prompted value.
+Add an additional 10 GB of space to the D: drive on testvm01.
 ```
-.\Expand-VirtualDisk.ps1 -VMMServer devvmm -VM testvm01 -Drive D
+.\Expand-VirtualDisk.ps1 -VMMServer devvmm -VM testvm01 -Drive D -SpaceToAdd 10
+```
+
+Expand the E: drive on testvm01 to the size specified when prompted.
+```
+.\Expand-VirtualDisk.ps1 -VMMServer devvmm -VM testvm01 -Drive E
 ```
