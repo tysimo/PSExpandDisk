@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 1.1.0
+.VERSION 1.2.0
 .GUID 99179600-f3aa-402f-8c0d-7d790673df30
 .AUTHOR Tyler Simonson
 .TAGS VirtualMachineManager, VMM, SCVMM, HardDisk 
@@ -75,17 +75,15 @@ param (
 
 Import-Module -Name "VirtualMachineManager"
 
-$VolumeScript = {
+$DiskInfoScript = {
 	param($Drive)
-	$DiskID = (Get-Disk | Get-Partition | Where-Object {$_.driveletter -like $Drive}).disknumber
-	$Lun = (Get-WmiObject win32_diskdrive | Where-Object {$_.DeviceID -like "\\.\PHYSICALDRIVE"+$DiskID})
-	Return $Lun.scsilogicalunit
-	}
+    $Number = ([string](Get-Partition -DriveLetter $Drive).DiskNumber).Replace(' ','')
+    $Partition = (Get-Partition -DriveLetter $Drive | Where-Object -FilterScript {$_.Type -Eq "Basic"}).PartitionNumber
+    $Size = (Get-Disk -Number $Number).Size
+	Return $Number, $Partition, $Size
+}
 $ExtendScript = {
-	param($Drive)
-	$Partition = Get-Partition -DriveLetter $Drive
-	$PartitionNumber = $Partition.PartitionNumber 
-	$DiskNumber = $Partition.DiskNumber
+	param($DiskNumber,$PartitionNumber)
 	$DiskPart = "select disk $DiskNumber
 	list partition
 	select partition $PartitionNumber
@@ -95,12 +93,11 @@ $ExtendScript = {
 
 Get-SCVMMServer -ComputerName $VMMServer | Out-Null
 
-$Drivex = $Drive + ":"	
-$Disk = Get-WmiObject Win32_LogicalDisk -ComputerName $VM -Filter "DeviceID='$Drivex'" | Select-Object Size,FreeSpace	
-$Size = [math]::round($Disk.size / 1GB,1)
-$Lun2 = Invoke-Command -ComputerName $VM -ScriptBlock $VolumeScript -Argumentlist $Drive
-$DriveName = (Get-SCVirtualDiskDrive -VM $VM | Where-Object {$_.lun -eq $Lun2}).VirtualHardDisk.Name + ".vhdx"
-$DriveName = $DriveName.Replace(".vhdx.vhdx",".vhdx")
+$DiskInfo = Invoke-Command -ComputerName $VM -ScriptBlock $DiskInfoScript -Argumentlist $Drive
+$DiskNumber = $DiskInfo[0]
+$PartitionNumber = $DiskInfo[1]
+$Size = [math]::round($DiskInfo[2] / 1GB,1)
+$Lun = (Get-WmiObject win32_diskdrive -ComputerName $VM | Where-Object {$_.DeviceID -like "\\.\PHYSICALDRIVE"+$DiskNumber}).SCSILogicalUnit
 
 switch ($psCmdlet.ParameterSetName) 
 {
@@ -117,14 +114,7 @@ switch ($psCmdlet.ParameterSetName)
 }
 
 Write-Host "Expanding virtual disk in VMM..." -ForegroundColor "Yellow"
-If ($Drive -eq "C")
-{
-	Get-SCVirtualMachine $VM | Get-SCVirtualDiskDrive | Where-Object {$_.Bus -eq 0 -and $_.Lun -eq 0} | Expand-SCVirtualDiskDrive -VirtualHardDiskSizeGB $NewSize | Out-Null
-}
-Else
-{
-	Get-SCVirtualMachine $VM | Get-SCVirtualDiskDrive | Where-Object {$_.VirtualHardDisk.Location -like "*$DriveName"} | Expand-SCVirtualDiskDrive -VirtualHardDiskSizeGB $NewSize | Out-Null
-}
+Get-SCVirtualMachine $VM | Get-SCVirtualDiskDrive | Where-Object {$_.Bus -eq 0 -and $_.Lun -eq $Lun} | Expand-SCVirtualDiskDrive -VirtualHardDiskSizeGB $NewSize | Out-Null
 
 Write-Host "Extending volume on virtual machine..." -ForegroundColor "Yellow"
-Invoke-Command -ComputerName $VM -ScriptBlock $ExtendScript -Argumentlist $Drive
+Invoke-Command -ComputerName $VM -ScriptBlock $ExtendScript -Argumentlist $DiskNumber,$PartitionNumber
