@@ -1,5 +1,5 @@
 <#PSScriptInfo
-.VERSION 1.2.0
+.VERSION 1.2.1
 .GUID 99179600-f3aa-402f-8c0d-7d790673df30
 .AUTHOR Tyler Simonson
 .TAGS VirtualMachineManager, VMM, SCVMM, HardDisk 
